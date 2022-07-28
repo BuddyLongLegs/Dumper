@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div class="controls">
+      <input
+        class="xhr-success"
+        type="button"
+        name="xhr"
+        value="Click to start"
+      />
+      <br />
+      <a id="save-file">Save File</a>
+      <br />
+      <span id="download-progress-text"></span>
+      <br />
+      <p readonly class="event-log" rows="12" cols="48"></p>
+    </div>
+  </body>
+  <script>
+    const xhrButtonSuccess = document.querySelector(".xhr-success");
+    const log = document.querySelector(".event-log");
+    const downloadProgressText = document.getElementById(
+      "download-progress-text"
+    );
+
+    function handleEvent(e) {
+      log.textContent = `${e.type}: ${e.loaded} bytes transferred\n`;
+    }
+
+    function runXHR(url) {
+      log.textContent = "";
+      let startTime = new Date().getTime();
+      let xhr = new XMLHttpRequest();
+      xhr.addEventListener("progress", handleEvent);
+      xhr.responseType = "blob";
+      xhr.open("GET", url, true);
+      xhr.send();
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+          let obj = window.URL.createObjectURL(xhr.response);
+          document.getElementById("save-file").setAttribute("href", obj);
+          document.getElementById("save-file").setAttribute("download", url);
+          setTimeout(function () {
+            window.URL.revokeObjectURL(obj);
+          }, 60 * 1000);
+        }
+      };
+
+      xhr.onprogress = function (e) {
+        let duration = (new Date().getTime() - startTime) / 1000;
+        let bps = e.loaded / duration;
+        let kbps = bps / 1024;
+        let mbps = kbps /1024;
+        kbps = Math.floor(kbps);
+        mbps = Math.floor(mbps);
+        let time = (e.total - e.loaded) / bps;
+        let seconds = time % 60;
+        let minutes = time / 60;
+        seconds = Math.floor(seconds);
+        minutes = Math.floor(minutes);
+        downloadProgressText.innerHTML =
+        mbps+" MB/s "+
+          kbps +
+          " KB / s" +
+          "<br>" +
+          minutes +
+          " min " +
+          seconds +
+          " seconds remaining";
+      };
+      return xhr;
+    }
+
+    xhrButtonSuccess.addEventListener("click", () => {
+      runXHR(
+        "http://172.27.7.95:8080/download"
+      );    
+    });
+  </script>
+</html>
